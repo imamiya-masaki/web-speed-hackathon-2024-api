@@ -2,7 +2,7 @@
   "private": true,
   "license": "MPL-2.0",
   "scripts": {
-    "build": "pnpm --filter \"@wsh-2024/web-speed\" --filter \"@wsh-2024/server\" --parallel run build",
+    "build": "pnpm --filter \"@wsh-2024/server\" --parallel run build",
     "format": "pnpm run format:eslint && pnpm run format:prettier",
     "format:eslint": "eslint --fix --ext mts,cts,ts,tsx,mjs,cjs,js,jsx . || true",
     "format:prettier": "prettier --ignore-path .prettierignore --write '**/*.{mts,cts,ts,tsx,mjs,cjs,js,jsx,json}'",

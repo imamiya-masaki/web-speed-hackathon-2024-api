@@ -87,7 +87,7 @@ app.get(
     const { ext: reqImgExt, name: reqImgId } = path.parse(c.req.valid('param').imageFile);
     
     const resImgFormat = c.req.valid('query').format ?? reqImgExt.slice(1);
-
+    console.log('imageRequestCheck', isSupportedImageFormat(resImgFormat), resImgFormat)
     if (!isSupportedImageFormat(resImgFormat)) {
       throw new HTTPException(501, { message: `Image format: ${resImgFormat} is not supported.` });
     }
@@ -97,7 +97,7 @@ app.get(
     if (origFilePath == null) {
       throw new HTTPException(404, { message: 'Not found.' });
     }
-
+    console.log('origFilePath:image', origFilePath)
     const origImgFormat = path.extname(origFilePath).slice(1);
     if (!isSupportedImageFormat(origImgFormat)) {
       throw new HTTPException(500, { message: 'Failed to load image.' });

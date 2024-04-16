@@ -99,11 +99,12 @@ app.get(
       console.error('error', e)
       console.log({origFilePath})
     }
+    console.log('origFilePath', origFilePath, !!origFileGlob)
     if (origFilePath == null) {
       throw new HTTPException(404, { message: 'Not found.' });
     }
-    console.log('origFilePath:image', origFilePath)
     const origImgFormat = path.extname(origFilePath).slice(1);
+    console.log('origFilePath:image', origFilePath, isSupportedImageFormat(origImgFormat))
     if (!isSupportedImageFormat(origImgFormat)) {
       throw new HTTPException(500, { message: 'Failed to load image.' });
     }

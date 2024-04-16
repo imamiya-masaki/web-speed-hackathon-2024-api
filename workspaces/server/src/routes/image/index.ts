@@ -91,9 +91,14 @@ app.get(
     if (!isSupportedImageFormat(resImgFormat)) {
       throw new HTTPException(501, { message: `Image format: ${resImgFormat} is not supported.` });
     }
-
-    const origFileGlob = [path.resolve(IMAGES_PATH, `${reqImgId}`), path.resolve(IMAGES_PATH, `${reqImgId}.*`)];
-    const [origFilePath] = await globby(origFileGlob, { absolute: true, onlyFiles: true });
+    let origFileGlob, origFilePath;
+    try {
+     origFileGlob = [path.resolve(IMAGES_PATH, `${reqImgId}`), path.resolve(IMAGES_PATH, `${reqImgId}.*`)];
+     [origFilePath] = await globby(origFileGlob, { absolute: true, onlyFiles: true });
+    } catch (e) {
+      console.error('error', e)
+      console.log({origFilePath})
+    }
     if (origFilePath == null) {
       throw new HTTPException(404, { message: 'Not found.' });
     }

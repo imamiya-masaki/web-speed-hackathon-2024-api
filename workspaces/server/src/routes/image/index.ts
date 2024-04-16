@@ -80,10 +80,12 @@ app.get(
     }),
   ),
   async (c) => {
+    console.log('imageRequest', c.req.url)
+    c.header('Cross-Origin-Resource-Policy', 'cross-origin')
     const { globby } = await import('globby');
 
     const { ext: reqImgExt, name: reqImgId } = path.parse(c.req.valid('param').imageFile);
-
+    
     const resImgFormat = c.req.valid('query').format ?? reqImgExt.slice(1);
 
     if (!isSupportedImageFormat(resImgFormat)) {
@@ -126,7 +128,6 @@ app.get(
     });
 
     c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
-    c.header('Cross-Origin-Resource-Policy', 'cross-origin')
     return c.body(resBinary);
   },
 );

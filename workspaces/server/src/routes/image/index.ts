@@ -110,6 +110,7 @@ app.get(
     }
     if (resImgFormat === origImgFormat && c.req.valid('query').width == null && c.req.valid('query').height == null) {
       // 画像変換せずにそのまま返す
+      console.log('画像返還せずに', c.req.valid('query'))
       c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
       return c.body(createStreamBody(createReadStream(origFilePath)));
     }
@@ -125,6 +126,9 @@ app.get(
       preserveAspectRatio: true,
       width: Math.ceil(image.width * scale),
     });
+    console.log('checkImage', {height: Math.ceil(image.height * scale),
+      preserveAspectRatio: true,
+      width: Math.ceil(image.width * scale)})
 
     const resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
       colorSpace: 'srgb',

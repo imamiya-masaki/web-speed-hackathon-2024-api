@@ -100,6 +100,7 @@ app.get(
       console.error('error', e)
       console.log({origFilePath})
     }
+    performance.mark('globby:end')
     console.log('origFilePath', origFilePath, !!origFileGlob)
     if (origFilePath == null) {
       throw new HTTPException(404, { message: 'Not found.' });
@@ -115,10 +116,11 @@ app.get(
       c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
       return c.body(createStreamBody(createReadStream(origFilePath)));
     }
-
+    
     const origBinary = await fs.readFile(origFilePath);
+    performance.mark('origBinary:end')
     const image = new Image(await IMAGE_CONVERTER[origImgFormat].decode(origBinary));
-
+    performance.mark('new Image:end')
     const reqImageSize = c.req.valid('query');
 
     const scale = Math.max((reqImageSize.width ?? 0) / image.width, (reqImageSize.height ?? 0) / image.height) || 1;
@@ -130,7 +132,6 @@ app.get(
     console.log('checkImage', {height: Math.ceil(image.height * scale),
       preserveAspectRatio: true,
       width: Math.ceil(image.width * scale)})
-    const resBinaryPreTime = performance.now();
     let resBinary: Uint8Array = new Uint8Array();
     try {
      resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
@@ -142,9 +143,12 @@ app.get(
      }catch (e) {
       console.error('resbinary:e', e);
      }
-    const resBinaryNextTime = performance.now();
-    console.log('time', resBinaryNextTime - resBinaryPreTime)
-    console.log('alltime', startTime - performance.now());
+    performance.mark('resBinary:end')
+    console.log('alltime', performance.now() - startTime);
+    const performanceMarks = performance.getEntriesByType('mark')
+    performanceMarks.forEach((entry) => {
+      console.log(`${entry.name}'s startTime: ${entry.startTime}`);
+    });
     c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
     return c.body(resBinary);
   },

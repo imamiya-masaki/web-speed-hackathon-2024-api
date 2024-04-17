@@ -80,6 +80,7 @@ app.get(
     }),
   ),
   async (c) => {
+    const startTime = performance.now();
     console.log('imageRequest', c.req.url)
     c.header('Cross-Origin-Resource-Policy', 'cross-origin')
     const { globby } = await import('globby');
@@ -143,6 +144,7 @@ app.get(
      }
     const resBinaryNextTime = performance.now();
     console.log('time', resBinaryNextTime - resBinaryPreTime)
+    console.log('alltime', startTime - performance.now());
     c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
     return c.body(resBinary);
   },

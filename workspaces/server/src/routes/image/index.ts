@@ -129,14 +129,20 @@ app.get(
     console.log('checkImage', {height: Math.ceil(image.height * scale),
       preserveAspectRatio: true,
       width: Math.ceil(image.width * scale)})
-
-    const resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
+    const resBinaryPreTime = performance.now();
+    let resBinary: Uint8Array = new Uint8Array();
+    try {
+     resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
       colorSpace: 'srgb',
       data: new Uint8ClampedArray(manipulated.data),
       height: manipulated.height,
       width: manipulated.width,
-    });
-
+    }) ;
+     }catch (e) {
+      console.error('resbinary:e', e);
+     }
+    const resBinaryNextTime = performance.now();
+    console.log('time', resBinaryNextTime - resBinaryPreTime)
     c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
     return c.body(resBinary);
   },

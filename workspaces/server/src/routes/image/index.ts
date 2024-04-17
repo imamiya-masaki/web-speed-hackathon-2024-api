@@ -80,6 +80,7 @@ app.get(
     }),
   ),
   async (c) => {
+    performance.mark('start')
     const startTime = performance.now();
     console.log('imageRequest', c.req.url)
     c.header('Cross-Origin-Resource-Policy', 'cross-origin')
@@ -92,6 +93,7 @@ app.get(
     if (!isSupportedImageFormat(resImgFormat)) {
       throw new HTTPException(501, { message: `Image format: ${resImgFormat} is not supported.` });
     }
+    performance.mark('resImgFormat:end')
     let origFileGlob, origFilePath;
     try {
      origFileGlob = [path.resolve(IMAGES_PATH, `${reqImgId}`), path.resolve(IMAGES_PATH, `${reqImgId}.*`)];
@@ -110,6 +112,7 @@ app.get(
     if (!isSupportedImageFormat(origImgFormat)) {
       throw new HTTPException(500, { message: 'Failed to load image.' });
     }
+    performance.mark('origImgFormat:end')
     if (resImgFormat === origImgFormat && c.req.valid('query').width == null && c.req.valid('query').height == null) {
       // 画像変換せずにそのまま返す
       console.log('画像返還せずに', c.req.valid('query'))
@@ -146,8 +149,11 @@ app.get(
     performance.mark('resBinary:end')
     console.log('alltime', performance.now() - startTime);
     const performanceMarks = performance.getEntriesByType('mark')
-    performanceMarks.forEach((entry) => {
-      console.log(`${entry.name}'s startTime: ${entry.startTime}`);
+    for (let i = 1; i < performanceMarks.length; i++) {
+      performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i]?.name ?? '', performanceMarks[i-1]?.name ?? '')
+    }
+    performance.getEntriesByType('measure').forEach((entry) => {
+      console.log(`${entry.name}'s duration: ${entry.duration}`);
     });
     c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
     return c.body(resBinary);

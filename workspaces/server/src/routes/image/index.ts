@@ -150,7 +150,7 @@ app.get(
     console.log('alltime', performance.now() - startTime);
     const performanceMarks = performance.getEntriesByType('mark')
     for (let i = 1; i < performanceMarks.length; i++) {
-      performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i]?.name ?? '', performanceMarks[i-1]?.name ?? '')
+      performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i-1]?.name ?? '', performanceMarks[i]?.name ?? '')
     }
     performance.getEntriesByType('measure').forEach((entry) => {
       console.log(`${entry.name}'s duration: ${entry.duration}`);

@@ -64,6 +64,14 @@ const IMAGE_CONVERTER: Record<SupportedImageExtension, ConverterInterface> = {
 
 const app = new Hono();
 
+const reqImageSizeToString = (regImageSize: {
+    format?: string | undefined;
+    height?: number | undefined;
+    width?: number | undefined;
+}) => {
+  return `?${Object.entries(regImageSize).map(([key,val]) => `${key}=${val}`).join('&')}`
+}
+
 app.get(
   '/images/:imageFile',
   zValidator(
@@ -119,12 +127,32 @@ app.get(
       c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
       return c.body(createStreamBody(createReadStream(origFilePath)));
     }
-    
+    const reqImageSize = c.req.valid('query');
+
+    c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
+
+    // 画像のresize等を既に行ったことあるファイルに関してはスキップする
+    try {
+      const cacheFileBinary = await fs.readFile(origFilePath + reqImageSizeToString(reqImageSize));
+      console.log('cached!!')
+      const performanceMarks = performance.getEntriesByType('mark')
+      for (let i = 1; i < performanceMarks.length; i++) {
+        performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i-1]?.name ?? '', performanceMarks[i]?.name ?? '')
+      }
+      performance.getEntriesByType('measure').forEach((entry) => {
+        console.log(`${entry.name}'s duration: ${entry.duration}`);
+      });
+      return c.body(cacheFileBinary);
+    } catch (e) {
+      // 初期読み込みは必ず失敗するのでエラーではない
+      console.log('not:manipulated', e)
+    }
+
+    // cacheされていなければ画像を加工する
     const origBinary = await fs.readFile(origFilePath);
     performance.mark('origBinary:end')
     const image = new Image(await IMAGE_CONVERTER[origImgFormat].decode(origBinary));
     performance.mark('new Image:end')
-    const reqImageSize = c.req.valid('query');
 
     const scale = Math.max((reqImageSize.width ?? 0) / image.width, (reqImageSize.height ?? 0) / image.height) || 1;
     const manipulated = image.resize({
@@ -137,26 +165,32 @@ app.get(
       width: Math.ceil(image.width * scale)})
     let resBinary: Uint8Array = new Uint8Array();
     try {
-     resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
+      resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
       colorSpace: 'srgb',
       data: new Uint8ClampedArray(manipulated.data),
       height: manipulated.height,
       width: manipulated.width,
     }) ;
-     }catch (e) {
+      }catch (e) {
       console.error('resbinary:e', e);
-     }
-    performance.mark('resBinary:end')
-    console.log('alltime', performance.now() - startTime);
-    const performanceMarks = performance.getEntriesByType('mark')
-    for (let i = 1; i < performanceMarks.length; i++) {
-      performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i-1]?.name ?? '', performanceMarks[i]?.name ?? '')
-    }
-    performance.getEntriesByType('measure').forEach((entry) => {
-      console.log(`${entry.name}'s duration: ${entry.duration}`);
-    });
-    c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
-    return c.body(resBinary);
+      }
+      performance.mark('resBinary:end')
+      console.log('alltime', performance.now() - startTime);
+      const performanceMarks = performance.getEntriesByType('mark')
+
+      for (let i = 1; i < performanceMarks.length; i++) {
+        performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i-1]?.name ?? '', performanceMarks[i]?.name ?? '')
+      }
+      performance.getEntriesByType('measure').forEach((entry) => {
+        console.log(`${entry.name}'s duration: ${entry.duration}`);
+      });
+
+      // asyncで、加工後の画像を保存する
+      fs.writeFile(origFilePath + reqImageSizeToString(reqImageSize), resBinary)
+
+
+      return c.body(resBinary);
+
   },
 );
 

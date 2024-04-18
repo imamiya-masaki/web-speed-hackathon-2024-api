@@ -16,6 +16,7 @@ import { jpegConverter } from '../../image-converters/jpegConverter';
 import { jpegXlConverter } from '../../image-converters/jpegXlConverter';
 import { pngConverter } from '../../image-converters/pngConverter';
 import { webpConverter } from '../../image-converters/webpConverter';
+import { globby } from 'globby';
 
 const createStreamBody = (stream: ReadStream) => {
   const body = new ReadableStream({
@@ -84,7 +85,6 @@ app.get(
     const startTime = performance.now();
     console.log('imageRequest', c.req.url)
     c.header('Cross-Origin-Resource-Policy', 'cross-origin')
-    const { globby } = await import('globby');
 
     const { ext: reqImgExt, name: reqImgId } = path.parse(c.req.valid('param').imageFile);
     

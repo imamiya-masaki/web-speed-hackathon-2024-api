@@ -16,7 +16,6 @@ import { jpegConverter } from '../../image-converters/jpegConverter';
 import { jpegXlConverter } from '../../image-converters/jpegXlConverter';
 import { pngConverter } from '../../image-converters/pngConverter';
 import { webpConverter } from '../../image-converters/webpConverter';
-import { globby } from 'globby';
 
 const createStreamBody = (stream: ReadStream) => {
   const body = new ReadableStream({
@@ -72,6 +71,22 @@ const reqImageSizeToString = (regImageSize: {
   return `?${Object.entries(regImageSize).map(([key,val]) => `${key}=${val}`).join('&')}`
 }
 
+const findFiles = async (imagePath: string, reqImgId: string) => {
+  try {
+    const files = await fs.readdir(imagePath);  // ディレクトリ内のファイルを取得
+    const filePattern = new RegExp(`^${reqImgId}(\\..*)?$`);  // ファイル名がIDに一致する正規表現
+    const matchedFiles = files.filter(file => filePattern.test(file));
+
+    // 絶対パスに変換
+    const matchedPaths = matchedFiles.map(file => path.resolve(imagePath, file));
+
+    console.log(matchedPaths);  // マッチしたファイルのパスを表示
+    return matchedPaths;
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
 app.get(
   '/images/:imageFile',
   zValidator(
@@ -102,17 +117,20 @@ app.get(
       throw new HTTPException(501, { message: `Image format: ${resImgFormat} is not supported.` });
     }
     performance.mark('resImgFormat:end')
-    let origFileGlob, origFilePath;
+    let origFilePath: string | undefined = undefined;
     try {
-     origFileGlob = [path.resolve(IMAGES_PATH, `${reqImgId}`), path.resolve(IMAGES_PATH, `${reqImgId}.*`)];
-     [origFilePath] = await globby(origFileGlob, { absolute: true, onlyFiles: true });
+    //  origFileGlob = [path.resolve(IMAGES_PATH, `${reqImgId}`), path.resolve(IMAGES_PATH, `${reqImgId}.*`)];
+    //  [origFilePath] = await globby(origFileGlob, { absolute: true, onlyFiles: true });
+     const orginFilePaths = await findFiles(IMAGES_PATH, reqImgId) ?? []
+     const exactMatchPath = orginFilePaths.find(v => path.extname(v).slice(1) === resImgFormat)
+     origFilePath = exactMatchPath ?? orginFilePaths[0]
     } catch (e) {
       console.error('error', e)
       console.log({origFilePath})
     }
-    performance.mark('globby:end')
-    console.log('origFilePath', origFilePath, !!origFileGlob)
-    if (origFilePath == null) {
+    performance.mark('findFiles:end')
+    console.log({origFilePath})
+    if (origFilePath === undefined) {
       throw new HTTPException(404, { message: 'Not found.' });
     }
     const origImgFormat = path.extname(origFilePath).slice(1);
@@ -134,7 +152,7 @@ app.get(
     // 画像のresize等を既に行ったことあるファイルに関してはスキップする
     try {
       const cacheFileBinary = await fs.readFile(origFilePath + reqImageSizeToString(reqImageSize));
-      console.log('cached!!')
+      console.log('cached')
       const performanceMarks = performance.getEntriesByType('mark')
       for (let i = 1; i < performanceMarks.length; i++) {
         performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i-1]?.name ?? '', performanceMarks[i]?.name ?? '')
@@ -142,10 +160,12 @@ app.get(
       performance.getEntriesByType('measure').forEach((entry) => {
         console.log(`${entry.name}'s duration: ${entry.duration}`);
       });
+      performance.clearMarks()
+      performance.clearMeasures()
       return c.body(cacheFileBinary);
     } catch (e) {
       // 初期読み込みは必ず失敗するのでエラーではない
-      console.log('not:manipulated', e)
+      console.info('not:manipulated', e)
     }
 
     // cacheされていなければ画像を加工する
@@ -184,6 +204,8 @@ app.get(
       performance.getEntriesByType('measure').forEach((entry) => {
         console.log(`${entry.name}'s duration: ${entry.duration}`);
       });
+      performance.clearMarks()
+      performance.clearMeasures()
 
       // asyncで、加工後の画像を保存する
       fs.writeFile(origFilePath + reqImageSizeToString(reqImageSize), resBinary)

@@ -9,7 +9,7 @@ import { HTTPException } from 'hono/http-exception';
 import { Image } from 'image-js';
 import { z } from 'zod';
 
-import { IMAGES_PATH } from '../../constants/paths';
+import { IMAGES_PATH, IMAGES_SEED_CACHE_PATH, IMAGES_CACHE_PATH } from '../../constants/paths';
 import type { ConverterInterface } from '../../image-converters/ConverterInterface';
 import { avifConverter } from '../../image-converters/avifConverter';
 import { jpegConverter } from '../../image-converters/jpegConverter';
@@ -117,41 +117,17 @@ app.get(
       throw new HTTPException(501, { message: `Image format: ${resImgFormat} is not supported.` });
     }
     performance.mark('resImgFormat:end')
-    let origFilePath: string | undefined = undefined;
-    try {
-    //  origFileGlob = [path.resolve(IMAGES_PATH, `${reqImgId}`), path.resolve(IMAGES_PATH, `${reqImgId}.*`)];
-    //  [origFilePath] = await globby(origFileGlob, { absolute: true, onlyFiles: true });
-     const orginFilePaths = await findFiles(IMAGES_PATH, reqImgId) ?? []
-     const exactMatchPath = orginFilePaths.find(v => path.extname(v).slice(1) === resImgFormat)
-     origFilePath = exactMatchPath ?? orginFilePaths[0]
-    } catch (e) {
-      console.error('error', e)
-      console.log({origFilePath})
-    }
-    performance.mark('findFiles:end')
-    console.log({origFilePath})
-    if (origFilePath === undefined) {
-      throw new HTTPException(404, { message: 'Not found.' });
-    }
-    const origImgFormat = path.extname(origFilePath).slice(1);
-    console.log('origFilePath:image', origFilePath, isSupportedImageFormat(origImgFormat))
-    if (!isSupportedImageFormat(origImgFormat)) {
-      throw new HTTPException(500, { message: 'Failed to load image.' });
-    }
-    performance.mark('origImgFormat:end')
-    if (resImgFormat === origImgFormat && c.req.valid('query').width == null && c.req.valid('query').height == null) {
-      // 画像変換せずにそのまま返す
-      console.log('画像返還せずに', c.req.valid('query'))
-      c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
-      return c.body(createStreamBody(createReadStream(origFilePath)));
-    }
-    const reqImageSize = c.req.valid('query');
 
-    c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
+
+
+    let origFilePath: string | undefined = undefined;
+
+    const reqImageSize = c.req.valid('query');
+    const cacheFilePath = path.join(IMAGES_CACHE_PATH, `${reqImgId}${reqImageSizeToString(reqImageSize)}.${resImgFormat}`)
 
     // 画像のresize等を既に行ったことあるファイルに関してはスキップする
     try {
-      const cacheFileBinary = await fs.readFile(origFilePath + reqImageSizeToString(reqImageSize));
+      const cacheFileBinary = await fs.readFile(cacheFilePath);
       console.log('cached')
       const performanceMarks = performance.getEntriesByType('mark')
       for (let i = 1; i < performanceMarks.length; i++) {
@@ -162,13 +138,40 @@ app.get(
       });
       performance.clearMarks()
       performance.clearMeasures()
+      c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
+      console.log('alltime', performance.now() - startTime);
       return c.body(cacheFileBinary);
     } catch (e) {
       // 初期読み込みは必ず失敗するのでエラーではない
       console.info('not:manipulated', e)
     }
 
-    // cacheされていなければ画像を加工する
+    // 元の画像データからの探索
+    const orginFilePaths = await findFiles(IMAGES_PATH, reqImgId) ?? []
+    // 探索
+    origFilePath = orginFilePaths.find(v => path.extname(v).slice(1) === resImgFormat) ?? orginFilePaths[0]
+
+    performance.mark('findFiles:end')
+    console.log({origFilePath})
+    if (origFilePath === undefined) {
+      throw new HTTPException(404, { message: 'Not found.' });
+    }
+    const origImgFormat = path.extname(origFilePath).slice(1);
+    console.log('origFilePath:image', {origFilePath, cacheFilePath})
+
+    if (!isSupportedImageFormat(origImgFormat)) {
+      throw new HTTPException(500, { message: 'Failed to load image.' });
+    }
+    performance.mark('origImgFormat:end')
+    if (resImgFormat === origImgFormat && c.req.valid('query').width == null && c.req.valid('query').height == null) {
+      // 画像変換せずにそのまま返す
+      console.log('画像返還せずに', c.req.valid('query'))
+      c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
+      return c.body(createStreamBody(createReadStream(origFilePath)));
+    }
+
+    c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
+
     const origBinary = await fs.readFile(origFilePath);
     performance.mark('origBinary:end')
     const image = new Image(await IMAGE_CONVERTER[origImgFormat].decode(origBinary));
@@ -208,8 +211,11 @@ app.get(
       performance.clearMeasures()
 
       // asyncで、加工後の画像を保存する
-      fs.writeFile(origFilePath + reqImageSizeToString(reqImageSize), resBinary)
-
+      fs.writeFile(cacheFilePath, resBinary)
+      // 開発環境のみのコード
+      const convertPath = cacheFilePath.replace(IMAGES_CACHE_PATH, IMAGES_SEED_CACHE_PATH)
+      console.log('writeFilePath', convertPath, cacheFilePath)
+      fs.writeFile(convertPath, resBinary)
 
       return c.body(resBinary);
 

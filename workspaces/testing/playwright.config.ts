@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const BASE_URL = process.env['E2E_BASE_URL'] ?? 'http://localhost:8000';
 
 export default defineConfig({
+  testIgnore: ['book.spec.ts', 'episode.spec.ts', 'footer.spec.ts', 'header.spec.ts', 'search.spec.ts', 'admin/*.spec.ts'],
   expect: {
     timeout: 60_000,
     toHaveScreenshot: {

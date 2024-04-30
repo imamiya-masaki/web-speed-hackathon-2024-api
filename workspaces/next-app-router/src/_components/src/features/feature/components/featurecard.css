@@ -1,8 +1,0 @@
-
-.FeatureCardImgWrapper img {
-    border-radius: 8px; /* Radius.SMALL の想定値 */
-  }
-  
-  .FeatureCardAvatarWrapper img {
-    border-radius: 50%;
-  }

@@ -1,9 +1,0 @@
-/* App.css または適切なCSSファイルに */
-.authorImageWrapper {
-    width: 128px;
-    height: 128px;
-  }
-  
-  .authorImageWrapper > img {
-    border-radius: 50%;
-  }

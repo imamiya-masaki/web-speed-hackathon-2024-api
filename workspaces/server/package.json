@@ -17,7 +17,6 @@
     "@jsquash/jxl": "1.1.0",
     "@node-kit/pnpm-workspace-root": "3.2.0",
     "@oneidentity/zstd-js": "1.0.3",
-    "@wsh-2024/web-speed": "workspace:*",
     "@wsh-2024/schema": "workspace:*",
     "bcryptjs": "2.4.3",
     "better-sqlite3": "9.3.0",

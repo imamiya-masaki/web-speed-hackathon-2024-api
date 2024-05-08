@@ -1,8 +1,8 @@
 import type { ConverterInterface } from './ConverterInterface';
+import sharp from "sharp";
 
 export const avifConverter: ConverterInterface = {
   async decode(data: Uint8Array): Promise<ImageData> {
-    const { default: sharp } = await import('sharp');
 
     return sharp(data)
       .ensureAlpha()
@@ -20,7 +20,6 @@ export const avifConverter: ConverterInterface = {
       });
   },
   async encode(data: ImageData): Promise<Uint8Array> {
-    const { default: sharp } = await import('sharp');
 
     return sharp(data.data, {
       raw: {

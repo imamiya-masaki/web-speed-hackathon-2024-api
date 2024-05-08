@@ -1,8 +1,9 @@
 import type { ConverterInterface } from './ConverterInterface';
+import sharp from "sharp";
 
 export const jpegConverter: ConverterInterface = {
   async decode(data: Uint8Array): Promise<ImageData> {
-    const { default: sharp } = await import('sharp');
+    // const { default: sharp } = await import('sharp');
 
     return sharp(data)
       .ensureAlpha()
@@ -20,7 +21,7 @@ export const jpegConverter: ConverterInterface = {
       });
   },
   async encode(data: ImageData): Promise<Uint8Array> {
-    const { default: sharp } = await import('sharp');
+    // const { default: sharp } = await import('sharp');
 
     return sharp(data.data, {
       raw: {

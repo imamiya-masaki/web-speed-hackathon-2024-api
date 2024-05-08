@@ -5,6 +5,7 @@ import { secureHeaders } from 'hono/secure-headers';
 
 import { cacheControlMiddleware } from '../middlewares/cacheControlMiddleware';
 import { compressMiddleware } from '../middlewares/compressMiddleware';
+import { createMiddleware } from 'hono/factory';
 
 import { adminApp } from './admin';
 import { apiApp } from './api';
@@ -13,18 +14,28 @@ import { staticApp } from './static';
 
 const app = new Hono();
 
-app.use(secureHeaders());
+// CORPヘッダを設定するミドルウェア
+const corpMiddleware = createMiddleware((c, next) => {
+  // 例: 同一オリジンまたは同一サイトの読み込みのみを許可
+  c.header('Cross-Origin-Resource-Policy', 'same-site')
+  return next()
+})
+
+
+
+app.use(secureHeaders({"crossOriginResourcePolicy": "cross-origin", "crossOriginEmbedderPolicy": "cross-origin", "crossOriginOpenerPolicy": "cross-origin"}));
 app.use(
   cors({
-    allowHeaders: ['Content-Type', 'Accept-Encoding', 'X-Accept-Encoding', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Accept-Encoding', 'X-Accept-Encoding', 'Authorization', 'Cross-Origin-Resource-Policy'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true,
     exposeHeaders: ['Content-Encoding', 'X-Content-Encoding'],
-    origin: (origin) => origin,
+    origin: ['http://localhost:8080', 'http://localhost:8000','http://localhost:3000','https://web-speed-vercel.anpan-playground.com'],
   }),
 );
 app.use(compressMiddleware);
 app.use(cacheControlMiddleware);
+app.use(corpMiddleware)
 
 app.get('/healthz', (c) => {
   return c.body('live', 200);

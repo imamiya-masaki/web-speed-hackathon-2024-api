@@ -13,7 +13,7 @@ import { IMAGES_PATH, IMAGES_SEED_CACHE_PATH, IMAGES_CACHE_PATH } from '../../co
 import type { ConverterInterface } from '../../image-converters/ConverterInterface';
 import { avifConverter } from '../../image-converters/avifConverter';
 import { jpegConverter } from '../../image-converters/jpegConverter';
-// import { jpegXlConverter } from '../../image-converters/jpegXlConverter';
+import { jpegXlConverter } from '../../image-converters/jpegXlConverter';
 import { pngConverter } from '../../image-converters/pngConverter';
 import { webpConverter } from '../../image-converters/webpConverter';
 
@@ -35,19 +35,23 @@ const createStreamBody = (stream: ReadStream) => {
   return body;
 };
 
-const SUPPORTED_IMAGE_EXTENSIONS = ['avif', 'webp', 'png', 'jpeg', 'jpg'] as const;
-
+const SUPPORTED_IMAGE_EXTENSIONS = ['avif', 'webp', 'png', 'jpeg', 'jpg', 'jxl'] as const;
+const SUPPORTED_IMAGE_EXTENSIONS_ORG = ['avif', 'webp', 'png', 'jpeg', 'jpg', 'jxl'] as const;
 type SupportedImageExtension = (typeof SUPPORTED_IMAGE_EXTENSIONS)[number];
 
 function isSupportedImageFormat(ext: unknown): ext is SupportedImageExtension {
   return (SUPPORTED_IMAGE_EXTENSIONS as readonly unknown[]).includes(ext);
 }
 
+function isSupportedImageFormatOrg(ext: unknown): ext is SupportedImageExtension {
+  return (SUPPORTED_IMAGE_EXTENSIONS_ORG as readonly unknown[]).includes(ext);
+}
+
 const IMAGE_MIME_TYPE: Record<SupportedImageExtension, string> = {
   ['avif']: 'image/avif',
   ['jpeg']: 'image/jpeg',
   ['jpg']: 'image/jpeg',
-  // ['jxl']: 'image/jxl',
+  ['jxl']: 'image/jxl',
   ['png']: 'image/png',
   ['webp']: 'image/webp',
 };
@@ -56,7 +60,7 @@ const IMAGE_CONVERTER: Record<SupportedImageExtension, ConverterInterface> = {
   ['avif']: avifConverter,
   ['jpeg']: jpegConverter,
   ['jpg']: jpegConverter,
-  // ['jxl']: jpegXlConverter,
+  ['jxl']: jpegXlConverter,
   ['png']: pngConverter,
   ['webp']: webpConverter,
 };
@@ -159,7 +163,7 @@ app.get(
     const origImgFormat = path.extname(origFilePath).slice(1);
     console.log('origFilePath:image', {origFilePath, cacheFilePath})
 
-    if (!isSupportedImageFormat(origImgFormat)) {
+    if (!isSupportedImageFormatOrg(origImgFormat)) {
       throw new HTTPException(500, { message: 'Failed to load image.' });
     }
     performance.mark('origImgFormat:end')

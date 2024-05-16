@@ -6,6 +6,7 @@ export const GetBookListRequestQuerySchema = z.object({
   limit: z.coerce.number().optional(),
   name: z.string().optional(),
   offset: z.coerce.number().optional(),
+  keyword: z.coerce.string().optional()
 });
 
 export type GetBookListRequestQuery = z.infer<typeof GetBookListRequestQuerySchema>;

@@ -109,14 +109,14 @@ app.get(
   ),
   async (c) => {
     performance.mark('start')
-    const startTime = performance.now();
-    console.log('imageRequest', c.req.url)
+    // const startTime = performance.now();
+    // console.log('imageRequest', c.req.url)
     // c.header('Cross-Origin-Resource-Policy', 'cross-origin')
 
     const { ext: reqImgExt, name: reqImgId } = path.parse(c.req.valid('param').imageFile);
     
     const resImgFormat = c.req.valid('query').format ?? reqImgExt.slice(1);
-    console.log('imageRequestCheck', isSupportedImageFormat(resImgFormat), resImgFormat)
+    // console.log('imageRequestCheck', isSupportedImageFormat(resImgFormat), resImgFormat)
     if (!isSupportedImageFormat(resImgFormat)) {
       throw new HTTPException(501, { message: `Image format: ${resImgFormat} is not supported.` });
     }
@@ -132,7 +132,7 @@ app.get(
     // 画像のresize等を既に行ったことあるファイルに関してはスキップする
     try {
       const cacheFileBinary = await fs.readFile(cacheFilePath);
-      console.log('cached')
+      // console.log('cached')
       const performanceMarks = performance.getEntriesByType('mark')
       for (let i = 1; i < performanceMarks.length; i++) {
         performance.measure(`${performanceMarks[i]?.name} - ${performanceMarks[i-1]?.name}`, performanceMarks[i-1]?.name ?? '', performanceMarks[i]?.name ?? '')
@@ -143,7 +143,7 @@ app.get(
       performance.clearMarks()
       performance.clearMeasures()
       c.header('Content-Type', IMAGE_MIME_TYPE[resImgFormat]);
-      console.log('alltime', performance.now() - startTime);
+      // console.log('alltime', performance.now() - startTime);
       return c.body(cacheFileBinary);
     } catch (e) {
       // 初期読み込みは必ず失敗するのでエラーではない
@@ -156,12 +156,12 @@ app.get(
     origFilePath = orginFilePaths.find(v => path.extname(v).slice(1) === resImgFormat) ?? orginFilePaths[0]
 
     performance.mark('findFiles:end')
-    console.log({origFilePath})
+    // console.log({origFilePath})
     if (origFilePath === undefined) {
       throw new HTTPException(404, { message: 'Not found.' });
     }
     const origImgFormat = path.extname(origFilePath).slice(1);
-    console.log('origFilePath:image', {origFilePath, cacheFilePath})
+    // console.log('origFilePath:image', {origFilePath, cacheFilePath})
 
     if (!isSupportedImageFormatOrg(origImgFormat)) {
       throw new HTTPException(500, { message: 'Failed to load image.' });
@@ -188,9 +188,9 @@ app.get(
       preserveAspectRatio: true,
       width: Math.ceil(image.width * scale),
     });
-    console.log('checkImage', {height: Math.ceil(image.height * scale),
-      preserveAspectRatio: true,
-      width: Math.ceil(image.width * scale)})
+    // console.log('checkImage', {height: Math.ceil(image.height * scale),
+    //   preserveAspectRatio: true,
+    //   width: Math.ceil(image.width * scale)})
     let resBinary: Uint8Array = new Uint8Array();
     try {
       resBinary = await IMAGE_CONVERTER[resImgFormat].encode({
@@ -203,7 +203,7 @@ app.get(
       console.error('resbinary:e', e);
       }
       performance.mark('resBinary:end')
-      console.log('alltime', performance.now() - startTime);
+      // console.log('alltime', performance.now() - startTime);
       const performanceMarks = performance.getEntriesByType('mark')
 
       for (let i = 1; i < performanceMarks.length; i++) {
@@ -219,7 +219,7 @@ app.get(
       fs.writeFile(cacheFilePath, resBinary)
       // 開発環境のみのコード
       const convertPath = cacheFilePath.replace(IMAGES_CACHE_PATH, IMAGES_SEED_CACHE_PATH)
-      console.log('writeFilePath', convertPath, cacheFilePath)
+      // console.log('writeFilePath', convertPath, cacheFilePath)
       fs.writeFile(convertPath, resBinary)
 
       return c.body(resBinary);

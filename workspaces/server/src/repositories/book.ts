@@ -109,7 +109,14 @@ class BookRepository implements BookRepositoryInterface {
             return like(book.name, `%${options.query.name}%`);
           }
           if (options.query.keyword != null) {
-            return or(like(book.name, `%${options.query.keyword}%`), like(book.nameRuby, `%${options.query.keyword}%`))
+            const orQuery = []
+            for (const keyword of [options.query.keyword, options.query.zenhira, options.query.zenkata, options.query.hanhira, options.query.hankata]){
+              if (keyword) {
+                orQuery.push(like(book.name, `%${keyword}%`))
+                orQuery.push(like(book.nameRuby, `%${keyword}%`))
+              }
+            }
+            return or(...orQuery)
           }
           return;
         },

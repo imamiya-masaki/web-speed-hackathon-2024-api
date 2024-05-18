@@ -2,18 +2,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { sqliteTable, text, customType} from 'drizzle-orm/sqlite-core';
-
-export const citext = customType<{
-  config: { length?: number };
-  data: string;
-  default: true;
-  notNull: true;
-}>({
-  dataType(config) {
-    return `text${config?.length ? `(${config.length})` : ""} COLLATE UNICODE`;
-  },
-});
+import { sqliteTable, text} from 'drizzle-orm/sqlite-core';
 
 export const book = sqliteTable('book', {
   // primary key
@@ -24,8 +13,8 @@ export const book = sqliteTable('book', {
   // columns
   description: text('description').notNull(),
   // unicode-collation-algorithm2と同様の挙動にするため
-  name: citext('name').notNull(),
-  nameRuby: citext('name_ruby').notNull(),
+  name: text('name').notNull(),
+  nameRuby: text('name_ruby').notNull(),
 
   // relations
   imageId: text('image_id').notNull(),
